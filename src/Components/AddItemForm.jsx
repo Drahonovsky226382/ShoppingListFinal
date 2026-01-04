@@ -1,0 +1,113 @@
+import { useState } from "react";
+import Button from "react-bootstrap/Button";
+import Modal from "react-bootstrap/Modal";
+import Form from "react-bootstrap/Form";
+import MyItems from "./MyItem";
+import { BsToggleOn, BsToggleOff } from "react-icons/bs";
+import FetchHelper from "../FetchHelper";
+import { useTranslation } from "react-i18next";
+
+function AddItemForm({ recipeSlug, items, onItemsUpdate }) {
+  const { t } = useTranslation();
+  const [show, setShow] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [showOnlyUnchecked, setShowOnlyUnchecked] = useState(false);
+
+  const handleClose = () => setShow(false);
+
+  const handleAddItem = async (e) => {
+    e.preventDefault();
+    if (!newItemName.trim()) return;
+
+    await FetchHelper.item.create({
+      recipeSlug,
+      name: newItemName,
+      checked: false,
+    });
+
+    setNewItemName("");
+    handleClose();
+    onItemsUpdate();
+  };
+
+  const handleToggle = async (id) => {
+    const item = items.find((i) => i.id === id);
+
+    await FetchHelper.item.update({
+      recipeSlug,
+      id,
+      checked: !item.checked,
+    });
+
+    onItemsUpdate();
+  };
+
+  const handleRemoveItem = async (id) => {
+    await FetchHelper.item.delete({ recipeSlug, id });
+    onItemsUpdate();
+  };
+
+  const filteredItems = showOnlyUnchecked
+    ? items.filter((i) => !i.checked)
+    : items;
+
+  return (
+    <div>
+      <MyItems
+        items={filteredItems}
+        onToggle={handleToggle}
+        onRemove={handleRemoveItem}
+      />
+
+      {/* Add Item Button */}
+      <div className="text-center mt-3">
+        <Button onClick={() => setShow(true)}>{t("detail.addItem")}</Button>
+      </div>
+
+      {/* Modal */}
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>{t("detail.addItemTitle")}</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <Form onSubmit={handleAddItem}>
+            <Form.Group>
+              <Form.Control
+                type="text"
+                placeholder={t("detail.enterItemPlaceholder")}
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                autoFocus
+              />
+            </Form.Group>
+
+            <Modal.Footer>
+              <Button variant="secondary" onClick={handleClose}>
+                {t("common.close")}
+              </Button>
+              <Button variant="primary" type="submit">
+                {t("common.add")}
+              </Button>
+            </Modal.Footer>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* Toggle unchecked */}
+      <span
+        className="mb-3 me-2"
+        style={{
+          cursor: "pointer",
+          fontSize: "1.8rem",
+          color: showOnlyUnchecked ? "grey" : "green",
+        }}
+        onClick={() => setShowOnlyUnchecked(!showOnlyUnchecked)}
+      >
+        {showOnlyUnchecked ? <BsToggleOff /> : <BsToggleOn />}
+      </span>
+    </div>
+  );
+}
+
+export default AddItemForm;
